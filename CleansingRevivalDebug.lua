@@ -187,7 +187,7 @@ function CRD.Initialize(_, addonName)
     EVENT_MANAGER:RegisterForEvent(CRD.name, EVENT_COMBAT_EVENT, CRD.OnCombatEvent)
 
     -- Register slash commands
-    SLASH_COMMANDS[\"/crd\"] = function(args)
+    SLASH_COMMANDS["/crd"] = function(args)
         if args == "test" then
             d("[CRD] ✓ Addon is ACTIVE and responding!")
             d("[CRD] ✓ Monitoring ability ID: " .. PASSIVE_ABILITY_ID)
