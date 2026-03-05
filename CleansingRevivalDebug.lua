@@ -6,9 +6,38 @@ CRD.eventCount = 0
 CRD.matchedEvents = 0
 CRD.verboseMode = false
 CRD.verboseEndTime = 0
+CRD.superVerboseMode = false
+CRD.superVerboseEndTime = 0
+CRD.cleanseMode = false
+CRD.cleanseEndTime = 0
 
 -- Constants
 local PASSIVE_ABILITY_ID = 142003 -- Cleansing Revival ability ID from Srendarr
+
+-- Result code lookup table for human-readable output
+local RESULT_CODES = {
+    [ACTION_RESULT_ABILITY_ON_COOLDOWN] = "ABILITY_ON_COOLDOWN",
+    [ACTION_RESULT_BAD_TARGET] = "BAD_TARGET",
+    [ACTION_RESULT_CANT_SEE_TARGET] = "CANT_SEE_TARGET",
+    [ACTION_RESULT_CRITICAL_DAMAGE] = "CRITICAL_DAMAGE",
+    [ACTION_RESULT_CRITICAL_HEAL] = "CRITICAL_HEAL",
+    [ACTION_RESULT_DAMAGE] = "DAMAGE",
+    [ACTION_RESULT_DAMAGE_SHIELDED] = "DAMAGE_SHIELDED",
+    [ACTION_RESULT_DEBUFF_REMOVED] = "DEBUFF_REMOVED",
+    [ACTION_RESULT_DOT_TICK] = "DOT_TICK",
+    [ACTION_RESULT_DOT_TICK_CRITICAL] = "DOT_TICK_CRITICAL",
+    [ACTION_RESULT_EFFECT_FADED] = "EFFECT_FADED",
+    [ACTION_RESULT_EFFECT_GAINED] = "EFFECT_GAINED",
+    [ACTION_RESULT_EFFECT_GAINED_DURATION] = "EFFECT_GAINED_DURATION",
+    [ACTION_RESULT_HEAL] = "HEAL",
+    [ACTION_RESULT_HOT_TICK] = "HOT_TICK",
+    [ACTION_RESULT_HOT_TICK_CRITICAL] = "HOT_TICK_CRITICAL",
+    [ACTION_RESULT_BUFF_REMOVED] = "BUFF_REMOVED",
+}
+
+local function GetResultCodeName(result)
+    return RESULT_CODES[result] or "UNKNOWN_" .. tostring(result)
+end
 
 -- UI Elements
 local statusLabel = nil
@@ -103,44 +132,100 @@ function CRD.OnCombatEvent(_, result, isError, abilityName, abilityGraphic,
         UpdateCounter()
     end
 
-    -- Player filter: only process if sourceName or targetName matches player
     local playerName = GetUnitName("player")
-    local isPlayerInvolved = (sourceName == playerName) or (targetName == playerName)
+    local playerUnitId = GetUnitTag("player")
+    
+    -- SUPER VERBOSE MODE: Log EVERYTHING for 10 seconds
+    if CRD.superVerboseMode then
+        if GetGameTimeMilliseconds() > CRD.superVerboseEndTime then
+            CRD.superVerboseMode = false
+            d("[CRD] === SUPER VERBOSE MODE ENDED ===")
+            d("[CRD] Total events captured: " .. CRD.eventCount)
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.ABILITY_ULTIMATE_READY, "[CRD] Super verbose capture complete!")
+            if statusLabel then
+                statusLabel:SetText("CRD: ACTIVE - Monitoring ID 142003")
+                statusLabel:SetColor(0, 1, 0, 1)
+            end
+        else
+            local timeLeft = math.ceil((CRD.superVerboseEndTime - GetGameTimeMilliseconds()) / 1000)
+            local resultName = GetResultCodeName(result)
+            local msg = string.format("[CRD ALL] %s | ID:%d | Result:%s(%d) | Src:%s | Tgt:%s | Val:%d | (%ds)",
+                abilityName or "nil", abilityId or 0, resultName, result, 
+                sourceName or "nil", targetName or "nil", hitValue or 0, timeLeft)
+            d(msg)
+        end
+        return -- Don't process other filters in super verbose mode
+    end
 
+    -- CLEANSE MODE: Log only debuff/effect removal events
+    if CRD.cleanseMode then
+        if GetGameTimeMilliseconds() > CRD.cleanseEndTime then
+            CRD.cleanseMode = false
+            d("[CRD] === CLEANSE MODE ENDED ===")
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.ABILITY_ULTIMATE_READY, "[CRD] Cleanse capture complete!")
+            if statusLabel then
+                statusLabel:SetText("CRD: ACTIVE - Monitoring ID 142003")
+                statusLabel:SetColor(0, 1, 0, 1)
+            end
+        else
+            if (result == ACTION_RESULT_EFFECT_FADED or
+                result == ACTION_RESULT_DEBUFF_REMOVED or
+                result == ACTION_RESULT_BUFF_REMOVED) then
+                
+                local timeLeft = math.ceil((CRD.cleanseEndTime - GetGameTimeMilliseconds()) / 1000)
+                local resultName = GetResultCodeName(result)
+                local msg = string.format("[CRD CLEANSE] %s | ID:%d | Result:%s | Src:%s | Tgt:%s | SrcUnit:%s | TgtUnit:%s | (%ds)",
+                    abilityName or "nil", abilityId or 0, resultName,
+                    sourceName or "nil", targetName or "nil",
+                    tostring(sourceUnitId), tostring(targetUnitId), timeLeft)
+                d(msg)
+                CHAT_SYSTEM:AddMessage(msg)
+                
+                if eventLogLabel then
+                    eventLogLabel:SetText(string.format("CLEANSE: %s (ID:%d)", abilityName or "nil", abilityId or 0))
+                end
+            end
+        end
+        return -- Don't process other filters in cleanse mode
+    end
+
+    -- Player filter for regular modes
+    local isPlayerInvolved = (sourceName == playerName) or (targetName == playerName)
     if not isPlayerInvolved then return end
 
-    -- VERBOSE MODE: Log ALL healing events on the player
+    -- VERBOSE MODE: Log ALL events involving the player (not just heals)
     if CRD.verboseMode then
-        -- Check if verbose mode should end
         if GetGameTimeMilliseconds() > CRD.verboseEndTime then
             CRD.verboseMode = false
             d("[CRD] === VERBOSE MODE ENDED ===")
             ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.ABILITY_ULTIMATE_READY, "[CRD] Verbose capture complete!")
             if statusLabel then
                 statusLabel:SetText("CRD: ACTIVE - Monitoring ID 142003")
+                statusLabel:SetColor(0, 1, 0, 1)
             end
         else
-            -- Log ALL healing events where player is the target
-            if targetName == playerName and (result == ACTION_RESULT_HEAL or
-                result == ACTION_RESULT_HOT_TICK or
-                result == ACTION_RESULT_CRITICAL_HEAL) then
-
-                local timeLeft = math.ceil((CRD.verboseEndTime - GetGameTimeMilliseconds()) / 1000)
-                local msg = string.format("[CRD VERBOSE] HEAL - Name: \'%s\' | ID: %d | Value: %d | Source: %s (%ds left)",
-                    abilityName, abilityId, hitValue, sourceName, timeLeft)
-                d(msg)
-                CHAT_SYSTEM:AddMessage(msg)
-
-                if eventLogLabel then
-                    eventLogLabel:SetText(string.format("VERBOSE: %s (ID:%d) = %d heal", abilityName, abilityId, hitValue))
-                end
+            -- Log ALL events where player is involved
+            local timeLeft = math.ceil((CRD.verboseEndTime - GetGameTimeMilliseconds()) / 1000)
+            local resultName = GetResultCodeName(result)
+            local isSelfProc = (sourceName == playerName and targetName == playerName)
+            local selfFlag = isSelfProc and "[SELF]" or ""
+            
+            local msg = string.format("[CRD VERBOSE] %s %s | ID:%d | Result:%s(%d) | Src:%s | Tgt:%s | Val:%d | (%ds)",
+                selfFlag, abilityName or "nil", abilityId or 0, resultName, result,
+                sourceName or "nil", targetName or "nil", hitValue or 0, timeLeft)
+            d(msg)
+            
+            if eventLogLabel then
+                eventLogLabel:SetText(string.format("VERBOSE: %s (ID:%d) Result:%s", 
+                    abilityName or "nil", abilityId or 0, resultName))
             end
         end
     end
 
     -- Normalize ability name for case-insensitive comparison
     local lowerAbilityName = string.lower(abilityName or "")
-    local hasCleansingName = string.find(lowerAbilityName, "cleans") ~= nil
+    local hasCleansingName = string.find(lowerAbilityName, "cleans") ~= nil or 
+                             string.find(lowerAbilityName, "revival") ~= nil
     local isPassiveAbility = (abilityId == PASSIVE_ABILITY_ID) and (PASSIVE_ABILITY_ID > 0)
 
     -- Filter 1: Healing events
@@ -149,8 +234,9 @@ function CRD.OnCombatEvent(_, result, isError, abilityName, abilityGraphic,
         result == ACTION_RESULT_CRITICAL_HEAL) then
         if hasCleansingName or isPassiveAbility then
             CRD.matchedEvents = CRD.matchedEvents + 1
-            LogEvent(string.format("[CRD] HEAL EVENT - Name: %s | ID: %d | Result: %d | Value: %d | Source: %s | Target: %s",
-                abilityName, abilityId, result, hitValue, sourceName, targetName))
+            local resultName = GetResultCodeName(result)
+            LogEvent(string.format("[CRD] HEAL EVENT - Name: %s | ID: %d | Result: %s(%d) | Value: %d | Source: %s | Target: %s",
+                abilityName, abilityId, resultName, result, hitValue, sourceName, targetName))
             UpdateCounter()
         end
     end
@@ -161,8 +247,9 @@ function CRD.OnCombatEvent(_, result, isError, abilityName, abilityGraphic,
         result == ACTION_RESULT_BUFF_REMOVED) then
         if hasCleansingName or isPassiveAbility then
             CRD.matchedEvents = CRD.matchedEvents + 1
-            LogEvent(string.format("[CRD] CLEANSE EVENT - Name: %s | ID: %d | Result: %d | Source: %s | Target: %s",
-                abilityName, abilityId, result, sourceName, targetName))
+            local resultName = GetResultCodeName(result)
+            LogEvent(string.format("[CRD] CLEANSE EVENT - Name: %s | ID: %d | Result: %s(%d) | Source: %s | Target: %s",
+                abilityName, abilityId, resultName, result, sourceName, targetName))
             UpdateCounter()
         end
     end
@@ -170,8 +257,9 @@ function CRD.OnCombatEvent(_, result, isError, abilityName, abilityGraphic,
     -- Filter 3: All events matching the passive ability ID
     if isPassiveAbility then
         CRD.matchedEvents = CRD.matchedEvents + 1
-        LogEvent(string.format("[CRD] PASSIVE ID EVENT - Name: %s | Result: %d | Value: %d",
-            abilityName, result, hitValue))
+        local resultName = GetResultCodeName(result)
+        LogEvent(string.format("[CRD] PASSIVE ID EVENT - Name: %s | Result: %s(%d) | Value: %d",
+            abilityName, resultName, result, hitValue))
         UpdateCounter()
     end
 end
@@ -202,15 +290,44 @@ function CRD.Initialize(_, addonName)
             CRD.verboseMode = true
             CRD.verboseEndTime = GetGameTimeMilliseconds() + 120000  -- 120 seconds
             d("===========================================")
-            d("[CRD] VERBOSE MODE ACTIVATED for 30 seconds")
-            d("[CRD] Logging ALL healing events on you")
+            d("[CRD] VERBOSE MODE ACTIVATED for 120 seconds")
+            d("[CRD] Logging ALL events involving you")
             d("[CRD] Trigger Cleansing Revival NOW!")
             d("===========================================")
             ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.GENERAL_ALERT_ERROR, "[CRD] VERBOSE MODE - Trigger Cleansing Revival now!")
             PlaySound(SOUNDS.GENERAL_ALERT_ERROR)
             if statusLabel then
-                statusLabel:SetText("CRD: VERBOSE MODE ACTIVE (30s)")
+                statusLabel:SetText("CRD: VERBOSE MODE ACTIVE (120s)")
+                statusLabel:SetColor(1, 1, 0, 1)  -- Yellow text
+            end
+        elseif args == "all" then
+            CRD.superVerboseMode = true
+            CRD.superVerboseEndTime = GetGameTimeMilliseconds() + 10000  -- 10 seconds
+            d("===========================================")
+            d("[CRD] SUPER VERBOSE MODE - 10 SECONDS")
+            d("[CRD] WARNING: This will spam chat HEAVILY!")
+            d("[CRD] Logging EVERY combat event")
+            d("[CRD] Trigger Cleansing Revival NOW!")
+            d("===========================================")
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.GENERAL_ALERT_ERROR, "[CRD] SUPER VERBOSE - Capturing ALL events!")
+            PlaySound(SOUNDS.GENERAL_ALERT_ERROR)
+            if statusLabel then
+                statusLabel:SetText("CRD: SUPER VERBOSE (10s) - ALL EVENTS")
                 statusLabel:SetColor(1, 0, 0, 1)  -- Red text
+            end
+        elseif args == "cleanse" then
+            CRD.cleanseMode = true
+            CRD.cleanseEndTime = GetGameTimeMilliseconds() + 30000  -- 30 seconds
+            d("===========================================")
+            d("[CRD] CLEANSE MODE ACTIVATED for 30 seconds")
+            d("[CRD] Logging only debuff/effect removals")
+            d("[CRD] Get debuffed and trigger Cleansing Revival!")
+            d("===========================================")
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.GENERAL_ALERT_ERROR, "[CRD] CLEANSE MODE - Get debuffed now!")
+            PlaySound(SOUNDS.GENERAL_ALERT_ERROR)
+            if statusLabel then
+                statusLabel:SetText("CRD: CLEANSE MODE ACTIVE (30s)")
+                statusLabel:SetColor(0, 1, 1, 1)  -- Cyan text
             end
         elseif args == "hide" then
             CRD.container:SetHidden(true)
@@ -219,7 +336,13 @@ function CRD.Initialize(_, addonName)
             CRD.container:SetHidden(false)
             d("[CRD] Display shown")
         else
-            d("[CRD] Commands: /crd test | /crd status | /crd verbose | /crd hide | /crd show")
+            d("[CRD] Commands:")
+            d("  /crd test - Test addon is active")
+            d("  /crd status - Show statistics")
+            d("  /crd verbose - Log all events on you (120s)")
+            d("  /crd all - Log EVERYTHING (10s, HEAVY SPAM)")
+            d("  /crd cleanse - Log only cleanses (30s)")
+            d("  /crd hide/show - Toggle display")
         end
     end
 
