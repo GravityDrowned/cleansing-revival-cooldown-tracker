@@ -14,29 +14,29 @@ CRD.cleanseEndTime = 0
 -- Constants
 local PASSIVE_ABILITY_ID = 142003 -- Cleansing Revival ability ID from Srendarr
 
--- Result code lookup table for human-readable output
-local RESULT_CODES = {
-    [ACTION_RESULT_ABILITY_ON_COOLDOWN] = "ABILITY_ON_COOLDOWN",
-    [ACTION_RESULT_BAD_TARGET] = "BAD_TARGET",
-    [ACTION_RESULT_CANT_SEE_TARGET] = "CANT_SEE_TARGET",
-    [ACTION_RESULT_CRITICAL_DAMAGE] = "CRITICAL_DAMAGE",
-    [ACTION_RESULT_CRITICAL_HEAL] = "CRITICAL_HEAL",
-    [ACTION_RESULT_DAMAGE] = "DAMAGE",
-    [ACTION_RESULT_DAMAGE_SHIELDED] = "DAMAGE_SHIELDED",
-    [ACTION_RESULT_DEBUFF_REMOVED] = "DEBUFF_REMOVED",
-    [ACTION_RESULT_DOT_TICK] = "DOT_TICK",
-    [ACTION_RESULT_DOT_TICK_CRITICAL] = "DOT_TICK_CRITICAL",
-    [ACTION_RESULT_EFFECT_FADED] = "EFFECT_FADED",
-    [ACTION_RESULT_EFFECT_GAINED] = "EFFECT_GAINED",
-    [ACTION_RESULT_EFFECT_GAINED_DURATION] = "EFFECT_GAINED_DURATION",
-    [ACTION_RESULT_HEAL] = "HEAL",
-    [ACTION_RESULT_HOT_TICK] = "HOT_TICK",
-    [ACTION_RESULT_HOT_TICK_CRITICAL] = "HOT_TICK_CRITICAL",
-    [ACTION_RESULT_BUFF_REMOVED] = "BUFF_REMOVED",
-}
-
+-- Result code lookup function (builds mapping on-demand to avoid nil constant issues)
 local function GetResultCodeName(result)
-    return RESULT_CODES[result] or "UNKNOWN_" .. tostring(result)
+    -- Map common result codes to human-readable names
+    if result == ACTION_RESULT_ABILITY_ON_COOLDOWN then return "ABILITY_ON_COOLDOWN"
+    elseif result == ACTION_RESULT_BAD_TARGET then return "BAD_TARGET"
+    elseif result == ACTION_RESULT_CANT_SEE_TARGET then return "CANT_SEE_TARGET"
+    elseif result == ACTION_RESULT_CRITICAL_DAMAGE then return "CRITICAL_DAMAGE"
+    elseif result == ACTION_RESULT_CRITICAL_HEAL then return "CRITICAL_HEAL"
+    elseif result == ACTION_RESULT_DAMAGE then return "DAMAGE"
+    elseif result == ACTION_RESULT_DAMAGE_SHIELDED then return "DAMAGE_SHIELDED"
+    elseif result == ACTION_RESULT_DEBUFF_REMOVED then return "DEBUFF_REMOVED"
+    elseif result == ACTION_RESULT_DOT_TICK then return "DOT_TICK"
+    elseif result == ACTION_RESULT_DOT_TICK_CRITICAL then return "DOT_TICK_CRITICAL"
+    elseif result == ACTION_RESULT_EFFECT_FADED then return "EFFECT_FADED"
+    elseif result == ACTION_RESULT_EFFECT_GAINED then return "EFFECT_GAINED"
+    elseif result == ACTION_RESULT_EFFECT_GAINED_DURATION then return "EFFECT_GAINED_DURATION"
+    elseif result == ACTION_RESULT_HEAL then return "HEAL"
+    elseif result == ACTION_RESULT_HOT_TICK then return "HOT_TICK"
+    elseif result == ACTION_RESULT_HOT_TICK_CRITICAL then return "HOT_TICK_CRITICAL"
+    elseif result == ACTION_RESULT_BUFF_REMOVED then return "BUFF_REMOVED"
+    else
+        return "UNKNOWN_" .. tostring(result)
+    end
 end
 
 -- UI Elements
