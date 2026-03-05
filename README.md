@@ -1,1 +1,46 @@
-# Cleansing Revival Debug Addon\n\n## Purpose\nThis diagnostic addon helps identify the exact combat event signature when the \"Cleansing Revival\" champion point ability activates. This information is needed to build the full Cleansing Revival cooldown tracker.\n\n## Current Configuration\n- **Ability ID**: 142003 (from Srendarr)\n- **Cooldown Duration**: 24 seconds (known from game mechanics)\n\n## Installation\n\n1. Ensure this folder is located at:\n   ```\n   <ESO Install>/live/AddOns/CleansingRevivalDebug/\n   ```\n\n2. In-game, type `/reloadui` to load the addon\n\n3. Check that you see the loading message:\n   ```\n   [CRD] Cleansing Revival Debug addon loaded!\n   [CRD] Currently monitoring passive ID: 142003\n   ```\n\n## Testing Procedure\n\nTo capture the activation event for Cleansing Revival:\n\n### Step 1: Enter Combat\n- Find enemies to fight\n- Enable your chat window to see debug output\n\n### Step 2: Trigger Cleansing Revival\nAccording to ESO mechanics, Cleansing Revival activates when:\n- You drop below a certain health threshold (typically 60% or lower)\n- You have negative effects (poison, disease, debuffs) active\n- The ability is off cooldown (24-second cooldown)\n\n**Recommended method:**\n1. Get into combat with multiple enemies\n2. Take damage until you're below ~50% health\n3. Ensure you have DOT effects or debuffs on you\n4. Wait for Cleansing Revival to proc (you'll see healing and effects removed)\n\n### Step 3: Check Chat Output\n\nLook for one of these message types:\n\n**HEAL EVENT** - Most likely signature\n```\n[CRD] HEAL EVENT - Name: <ability> | ID: <id> | Result: <code> | Value: <heal> | Source: <you> | Target: <you>\n```\n\n**CLEANSE EVENT** - When debuffs are removed\n```\n[CRD] CLEANSE EVENT - Name: <ability> | ID: <id> | Result: <code> | Source: <you> | Target: <you>\n```\n\n**PASSIVE ID EVENT** - Any event matching 142003\n```\n[CRD] PASSIVE ID EVENT - Name: <ability> | Result: <code> | Value: <value>\n```\n\n## What to Look For\n\nWhen Cleansing Revival activates, you should see:\n\n1. **Ability ID** - Might be 142003 OR a different ID\n2. **Result Code** - The ACTION_RESULT_* constant (numeric value)\n3. **Ability Name** - May contain \"Cleansing\", \"Revival\", or something else\n4. **Timing** - Events should appear every 24 seconds when conditions are met\n\n## Expected Outcomes\n\n### Scenario A: Same ID (142003)\n- The passive ID fires with a specific result code when it activates\n- Example: `Result: 2240` = ACTION_RESULT_HEAL\n- **Next step**: Filter on both ID + result code\n\n### Scenario B: Different Activation ID\n- A new ability ID appears that's different from 142003\n- This is the \"proc\" ID we need to track\n- **Next step**: Track the new ID instead\n\n### Scenario C: No Events Logged\n- Champion abilities may not fire detectable combat events\n- **Next step**: Use manual cooldown tracking (slash command)\n\n## Troubleshooting\n\n**No output at all:**\n- Check addon is loaded: `/reloadui`\n- Verify chat window is visible\n- Try taking more damage / getting more debuffs\n\n**Too much spam:**\n- This is normal - the addon logs many events\n- Look specifically for patterns when you KNOW Cleansing Revival just triggered\n- Visual cue: You get healed + debuffs removed\n\n**Not sure if it triggered:**\n- Watch for the healing/cleansing visual effects\n- Check your buff bar - debuffs should disappear\n- Monitor your health bar for sudden healing\n\n## Next Steps\n\nOnce you identify the event signature:\n1. Note the ability ID, result code, and any patterns\n2. Disable this debug addon\n3. Build the full cooldown tracker using the discovered event signature\n\n## Files\n\n- `CleansingRevivalDebug.txt` - Addon manifest\n- `CleansingRevivalDebug.lua` - Event logger implementation\n- `README.md` - This file
+# Cleansing Revival Debug Addon\n\n## Purpose\nThis diagnostic addon helps identify the exact combat event signature when the \"Cleansing Revival\" champion point ability activates. This information is needed to build the full Cleansing Revival cooldown tracker.\n\n## Current Configuration\n-
+
+**Ability ID**: 142003 (from Srendarr)\n- **Cooldown Duration
+**: 24 seconds (known from game mechanics)\n\n## Installation\n\n1. Ensure this folder is located at:\n
+```\n   <ESO Install>/live/AddOns/CleansingRevivalDebug/\n   ```\n\n2. In-game, type
+`/reloadui` to load the addon\n\n3. Check that you see the loading message:\n
+```\n   [CRD] Cleansing Revival Debug addon loaded!\n   [CRD] Currently monitoring passive ID: 142003\n   ```\n\n##
+Testing Procedure\n\nTo capture the activation event for Cleansing Revival:\n\n### Step 1: Enter Combat\n- Find enemies
+to fight\n- Enable your chat window to see debug output\n\n### Step 2: Trigger Cleansing Revival\nAccording to ESO
+mechanics, Cleansing Revival activates when:\n- You drop below a certain health threshold (typically 60% or lower)\n-
+You have negative effects (poison, disease, debuffs) active\n- The ability is off cooldown (24-second cooldown)\n\n
+**Recommended method:
+**\n1. Get into combat with multiple enemies\n2. Take damage until you're below ~50% health\n3. Ensure you have DOT
+effects or debuffs on you\n4. Wait for Cleansing Revival to proc (you'll see healing and effects removed)\n\n### Step 3:
+Check Chat Output\n\nLook for one of these message types:\n\n
+**HEAL EVENT** - Most likely signature\n
+```\n[CRD] HEAL EVENT - Name: <ability> | ID: <id> | Result: <code> | Value: <heal> | Source: <you> | Target: <you>\n```
+\n\n
+**CLEANSE EVENT** - When debuffs are removed\n
+```\n[CRD] CLEANSE EVENT - Name: <ability> | ID: <id> | Result: <code> | Source: <you> | Target: <you>\n```\n\n**PASSIVE
+ID EVENT** - Any event matching 142003\n
+```\n[CRD] PASSIVE ID EVENT - Name: <ability> | Result: <code> | Value: <value>\n```\n\n## What to Look For\n\nWhen
+Cleansing Revival activates, you should see:\n\n1.
+**Ability ID** - Might be 142003 OR a different ID\n2. **Result Code
+** - The ACTION_RESULT_* constant (numeric value)\n3. **Ability Name
+** - May contain \"Cleansing\", \"Revival\", or something else\n4. **Timing
+** - Events should appear every 24 seconds when conditions are met\n\n## Expected Outcomes\n\n### Scenario A: Same ID (
+142003)\n- The passive ID fires with a specific result code when it activates\n- Example:
+`Result: 2240` = ACTION_RESULT_HEAL\n- **Next step
+**: Filter on both ID + result code\n\n### Scenario B: Different Activation ID\n- A new ability ID appears that's
+different from 142003\n- This is the \"proc\" ID we need to track\n-
+**Next step
+**: Track the new ID instead\n\n### Scenario C: No Events Logged\n- Champion abilities may not fire detectable combat
+events\n-
+**Next step**: Use manual cooldown tracking (slash command)\n\n## Troubleshooting\n\n**No output at all:
+**\n- Check addon is loaded:
+`/reloadui`\n- Verify chat window is visible\n- Try taking more damage / getting more debuffs\n\n**Too much spam:
+**\n- This is normal - the addon logs many events\n- Look specifically for patterns when you KNOW Cleansing Revival just
+triggered\n- Visual cue: You get healed + debuffs removed\n\n
+**Not sure if it triggered:
+**\n- Watch for the healing/cleansing visual effects\n- Check your buff bar - debuffs should disappear\n- Monitor your
+health bar for sudden healing\n\n## Next Steps\n\nOnce you identify the event signature:\n1. Note the ability ID, result
+code, and any patterns\n2. Disable this debug addon\n3. Build the full cooldown tracker using the discovered event
+signature\n\n## Files\n\n-
+`CleansingRevivalDebug.txt` - Addon manifest\n- `CleansingRevivalDebug.lua` - Event logger implementation\n-
+`README.md` - This file
