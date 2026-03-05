@@ -96,6 +96,43 @@ Cleansing Revival activates, you should see:
 4. **Timing
 ** - Events should appear every 24 seconds when conditions are met
 
+## Enhanced Debugging Modes
+
+### Mode 1: Verbose Mode (`/crd verbose`)
+- **Duration:** 120 seconds
+- **Captures:** All combat events where you are the source OR target
+- **Use when:** You want to see everything happening to/from you
+- **Look for:** Self-targeted heals with unusual names or IDs
+
+### Mode 2: Super Verbose Mode (`/crd all`)
+- **Duration:** 10 seconds
+- **Captures:** EVERY SINGLE combat event (even ones not involving you)
+- **WARNING:** This will spam chat extremely heavily!
+- **Use when:** You need to catch an event that doesn't target you specifically
+- **Look for:** Any unusual ability IDs firing when Cleansing Revival procs
+
+### Mode 3: Cleanse Mode (`/crd cleanse`)
+- **Duration:** 30 seconds
+- **Captures:** Only EFFECT_FADED, DEBUFF_REMOVED, BUFF_REMOVED events
+- **Use when:** You want to focus on the \"cleansing\" aspect of Cleansing Revival
+- **Look for:** Debuff removals with unusual source abilities
+
+## Testing Strategy
+
+**Recommended approach:**
+1. Start with `/crd verbose` (120s) - this is the least spammy
+2. Get into combat, take damage, get debuffed
+3. Drop below 60% health while debuffed
+4. Look for self-targeted heals: `[SELF]` flag in output
+5. If nothing found, try `/crd cleanse` to focus on debuff removals
+6. As last resort, use `/crd all` for 10 seconds of complete capture
+
+**What we're looking for:**
+- Ability name containing \"Cleansing\", \"Revival\", or similar
+- Self-targeted heal (Source = Target = your character name)
+- Ability ID that is NOT 142003
+- Events that fire every 24 seconds when conditions are met
+
 ## Expected Outcomes
 
 ### Scenario A: Same ID (
