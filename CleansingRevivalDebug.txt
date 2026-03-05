@@ -1,7 +1,8 @@
 ## Title: Cleansing Revival Debug
-## APIVersion: 101039
+## APIVersion: 101044
 ## Description: Diagnostic tool to identify Cleansing Revival activation events
 ## Author: Debug Utility
 ## Version: 1.0.0
+## IsLibrary: false
 
 CleansingRevivalDebug.lua
